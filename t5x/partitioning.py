@@ -339,6 +339,7 @@ def get_gpu_mesh(num_partitions: int) -> Mesh:
 
   global_mesh = Mesh(devices, ['data', 'model'])
   print("global_mesh", global_mesh)
+  print("local_mesh = global_mesh.local_mesh: ", global_mesh.local_mesh)
   logging.info('global_mesh axis_names: %s', global_mesh.axis_names)
   logging.info('global_mesh devices: %s', global_mesh.devices)
   return global_mesh
