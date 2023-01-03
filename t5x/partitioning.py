@@ -318,10 +318,15 @@ def get_gpu_mesh(num_partitions: int) -> Mesh:
   """Mesh for GPUs that preferentially places 'model' on NVLink."""
   print("In function get_gpu_mesh")
   nvlink_size = jax.local_device_count()
+  print("nvlink_size: ", nvlink_size)
   dcn_size = jax.process_count()
+  print("dcn_size: ", dcn_size)
   nvlink_mp = min(num_partitions, nvlink_size)
+  print("nvlink_mp: ", nvlink_mp)
   nvlink_dp, extra1 = divmod(nvlink_size, nvlink_mp)
+  print("nvlink_dp: ", nvlink_dp)
   dcn_mp, extra2 = divmod(num_partitions, nvlink_mp)
+  print("dcn_mp: ", dcn_mp)
   assert not (extra1 or extra2), ('number of partitions on GPU must be a factor'
                                   ' or multiple of the number of local devices')
   dcn_dp = dcn_size // dcn_mp
@@ -330,6 +335,7 @@ def get_gpu_mesh(num_partitions: int) -> Mesh:
       mesh_shape=[nvlink_dp, nvlink_mp],
       dcn_mesh_shape=[dcn_dp, dcn_mp],
       process_is_granule=True)
+  print("devices: ", devices)
 
   global_mesh = Mesh(devices, ['data', 'model'])
   print("global_mesh", global_mesh)
