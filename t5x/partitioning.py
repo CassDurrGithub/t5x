@@ -316,6 +316,7 @@ def get_cpu_mesh() -> Mesh:
 
 def get_gpu_mesh(num_partitions: int) -> Mesh:
   """Mesh for GPUs that preferentially places 'model' on NVLink."""
+  print("In function get_gpu_mesh")
   nvlink_size = jax.local_device_count()
   dcn_size = jax.process_count()
   nvlink_mp = min(num_partitions, nvlink_size)
@@ -331,6 +332,7 @@ def get_gpu_mesh(num_partitions: int) -> Mesh:
       process_is_granule=True)
 
   global_mesh = Mesh(devices, ['data', 'model'])
+  print("global_mesh", global_mesh)
   logging.info('global_mesh axis_names: %s', global_mesh.axis_names)
   logging.info('global_mesh devices: %s', global_mesh.devices)
   return global_mesh
@@ -438,7 +440,7 @@ class LocalChunker:
     self.chunk_ids = collections.OrderedDict()
     self.mesh_axes = list(global_mesh.shape.keys())
     for mesh_axis in self.mesh_axes:
-      print("/n/nMesh axis: ", mesh_axis)
+      print("\n\nMesh axis: ", mesh_axis)
       num_devices_per_chunk = local_mesh.shape[mesh_axis]
       print("num_devices_per_chunk: ", num_devices_per_chunk)
       print("global_mesh.shape[mesh_axis]: ", global_mesh.shape[mesh_axis])
