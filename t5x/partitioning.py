@@ -661,6 +661,9 @@ class BasePartitioner(metaclass=abc.ABCMeta):
     Returns:
       Filled `DataLayout` structure.
     """
+    print("Entered get_data_layout")
+    print("self._data_axis", self._data_axis)
+
     if host_index is not None:
       raise NotImplementedError('Explicit host_index is not yet implemented.')
     if self._data_axis is None:
