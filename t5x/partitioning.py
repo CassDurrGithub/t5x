@@ -187,6 +187,7 @@ def get_mesh(model_parallel_submesh: HardwareMesh,
   Returns:
     A xmap / pjit Mesh containing the virtual device mesh with data, model axes.
   """
+  print("In function get_mesh")
   input_devices = input_devices or jax.devices(backend)
   input_local_devices = input_local_devices or jax.local_devices(0, backend)
   # Sort input_devices based on coords, as backends might not return devices
@@ -297,6 +298,7 @@ def get_mesh(model_parallel_submesh: HardwareMesh,
   # reshape to (data, model)
   devices = devices.reshape(-1, np.prod(model_parallel_submesh))
   global_mesh = Mesh(devices, ['data', 'model'])
+  print("global_mesh in function get_mesh: ", global_mesh)
   logging.info('global_mesh axis_names: %s', global_mesh.axis_names)
   logging.info('global_mesh devices: %s', global_mesh.devices)
   logging.info('global_mesh devices shape: %s', global_mesh.devices.shape)
@@ -351,6 +353,7 @@ def default_mesh(num_partitions: int,
   Returns:
     xmap/pjit 2D Mesh with 'data', 'model' mesh axes.
   """
+  print("In the function default_mesh")
   last_device = jax.devices(backend)[-1]
   platform = last_device.platform
   device_kind = last_device.device_kind
@@ -832,6 +835,7 @@ class BasePjitPartitioner(BasePartitioner):
 
   @cached_property
   def mesh(self) -> Mesh:
+    print("In the cached property mesh(self).")
     return default_mesh(self._num_partitions, self._model_parallel_submesh,
                         self._backend)
 
