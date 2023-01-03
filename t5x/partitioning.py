@@ -435,9 +435,13 @@ class LocalChunker:
     self.chunk_ids = collections.OrderedDict()
     self.mesh_axes = list(global_mesh.shape.keys())
     for mesh_axis in self.mesh_axes:
+      print("/n/nMesh axis: ", mesh_axis)
       num_devices_per_chunk = local_mesh.shape[mesh_axis]
+      print("num_devices_per_chunk: ", num_devices_per_chunk)
+      print("global_mesh.shape[mesh_axis]: ", global_mesh.shape[mesh_axis])
       self.num_chunks[mesh_axis] = (
           global_mesh.shape[mesh_axis] // num_devices_per_chunk)
+      print("self.num_chunks[mesh_axis]: ", self.num_chunks[mesh_axis])
       self.chunk_ids[mesh_axis] = (
           host_location[mesh_axis] // num_devices_per_chunk)
 
@@ -682,6 +686,7 @@ class BasePartitioner(metaclass=abc.ABCMeta):
       raise ValueError(
           f'Batch size ({batch_size}) must be divisible by corresponding '
           f'mesh size ({mesh_size}).')
+    print("self._local_chunker.num_chunks: ", self._local_chunker.num_chunks)
     num_shards = self._local_chunker.num_chunks[self._data_axis]
     print("num_shards: ", num_shards)
     if batch_size % num_shards:
