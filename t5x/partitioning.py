@@ -422,6 +422,7 @@ class LocalChunker:
   """Utility class to aid chunking of sharded arrays in multihost settings."""
 
   def __init__(self, global_mesh: Mesh):
+    print("In LocalChunker class")
     self.global_mesh = global_mesh
     local_mesh = global_mesh.local_mesh
     first_local_device = local_mesh.devices.reshape(-1)[0]
@@ -661,24 +662,28 @@ class BasePartitioner(metaclass=abc.ABCMeta):
     Returns:
       Filled `DataLayout` structure.
     """
-    
+
     print("Entered get_data_layout")
     print("self._data_axis", self._data_axis)
     if host_index is not None:
       raise NotImplementedError('Explicit host_index is not yet implemented.')
     if self._data_axis is None:
+      print("In line: if self._data_axis is None")
       return DataLayout(
           batch_size=batch_size,
           shard_id=0,
           num_shards=1,
           is_first_host_in_replica_set=(jax.process_index() == 0))
     mesh_size = self._local_chunker.global_mesh.shape[self._data_axis]
+    print("mesh size: ", mesh_size)
     batch_size = batch_size or mesh_size
+    print("batch_size: ", batch_size)
     if batch_size % mesh_size:
       raise ValueError(
           f'Batch size ({batch_size}) must be divisible by corresponding '
           f'mesh size ({mesh_size}).')
     num_shards = self._local_chunker.num_chunks[self._data_axis]
+    print("num_shards: ", num_shards)
     if batch_size % num_shards:
       raise ValueError(
           f'Batch size ({batch_size}) must be divisible by number of '
@@ -719,6 +724,7 @@ class BasePartitioner(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def _local_chunker(self):
     """Returns the chunker that matches the parameters of this partitioner."""
+    print("In _local_chunker from parent parent class - BasePartitioner")
     raise NotImplementedError
 
   def get_logical_axes(self, train_state: TrainState) -> TrainState:
@@ -816,6 +822,7 @@ class BasePjitPartitioner(BasePartitioner):
 
   @cached_property
   def _local_chunker(self) -> LocalChunker:
+    print("In _local_chunker from parent class - BasePjitPartitioner")
     return LocalChunker(self.mesh)
 
   @cached_property
