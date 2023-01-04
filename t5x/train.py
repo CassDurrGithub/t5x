@@ -258,7 +258,7 @@ def train(
   # ---------------------------------------------------------------------------
   # Initialize datasets
   # ---------------------------------------------------------------------------
-
+  logging.info('Initialize datasets section')
   if (train_dataset_cfg.seed and
       not (checkpoint_cfg.save and checkpoint_cfg.save.save_dataset)):
     logging.warning(
@@ -270,15 +270,19 @@ def train(
   data_layout = partitioner.get_data_layout(train_dataset_cfg.batch_size)
   ds_shard_id = data_layout.shard_id
   num_ds_shards = data_layout.num_shards
+  logging.info('Computed data_layout successfully.')
 
   def _verify_matching_vocabs(cfg: utils.DatasetConfig):
     if verify_matching_vocabs_fn is not None:
       verify_matching_vocabs_fn(cfg, model)
 
   _verify_matching_vocabs(train_dataset_cfg)
+  logging.info('Computed _verify_matching_vocabs on train_dataset_cfg successfully.')
 
   train_iter = get_dataset_fn(train_dataset_cfg, ds_shard_id, num_ds_shards,
                               model.FEATURE_CONVERTER_CLS)
+  logging.info('Computed train_iter successfully.')
+
   if isinstance(train_iter, tf.data.Dataset):
     train_iter = clu.data.TfDatasetIterator(train_iter, checkpoint=True)
   elif not isinstance(train_iter, clu.data.dataset_iterator.DatasetIterator):
@@ -287,16 +291,21 @@ def train(
 
   input_shapes = jax.tree_map(lambda x: (data_layout.batch_size, *x.shape[1:]),
                               train_iter.element_spec)
+  logging.info('Computed input_shapes successfully.')
   input_types = jax.tree_map(lambda x: x.dtype, train_iter.element_spec)
+  logging.info('Computed input_types successfully.')
 
   if use_gda:
     train_iter = utils.GDADatasetIterator(train_iter, partitioner, input_shapes)
+    logging.info('Computed train_iter using GDA.')
 
   if train_eval_dataset_cfg:
     _verify_matching_vocabs(train_eval_dataset_cfg)
+    logging.info('Computed _verify_matching_vocabs on train_eval_dataset_cfg successfully.')
     train_eval_datasets = train_eval_get_dataset_fn(
         train_eval_dataset_cfg, ds_shard_id, num_ds_shards, eval_steps,
         model.FEATURE_CONVERTER_CLS)  # type: Mapping[str, tf.data.Dataset]
+    logging.info('Computed train_eval_datasets successfully.')
     if not train_eval_datasets:
       logging.warning(
           'No train_eval datasets loaded from config `train_eval_dataset_cfg`: '
@@ -410,6 +419,7 @@ def train(
   # ---------------------------------------------------------------------------
   # Trainer
   # ---------------------------------------------------------------------------
+  logging.info('Started the Trainer section.')
 
   trainer: trainer_lib.BaseTrainer = trainer_cls(
       model=model,
@@ -420,17 +430,21 @@ def train(
       summary_dir=model_dir,
       rng=trainer_rng)
   del train_state
+  logging.info('Computed trainer_cls successfully.')
 
   train_metrics = trainer.train_metrics_manager
+  logging.info('Computed train_metrics successfully.')
   summarize_config_fn(model_dir, train_metrics.summary_writer, host_step)
-
+  logging.info('Computed summarize_config_fn successfully.')
   train_metrics.write_scalar('timing/init_or_restore_seconds',
                              init_or_restore_secs, host_step)
+
 
   # ----------------------------------------------------------------------------
   # SeqIO (inference-based) evaluation setup
   # ----------------------------------------------------------------------------
   # Init evaluator to set up cached datasets
+  logging.info('Started SeqIO (inference-based) evaluation setup section.')
   evaluator = None
   if infer_eval_dataset_cfg is not None:
     evaluator = eval_lib.InferenceEvaluator(
@@ -444,6 +458,8 @@ def train(
       # Skip evaluaton.
       evaluator = None
 
+  logging.info('Configured evaluator successfully.')
+
   if actions is None:
     actions = {}
 
@@ -453,6 +469,8 @@ def train(
 
   # Transform the string key into proper ActionMode enum.
   actions = {trainer_lib.ActionMode[k]: v for k, v in actions.items()}
+
+  logging.info('Computed actions successfully.')
 
   if concurrent_metrics and actions.get(trainer_lib.ActionMode.INFER_EVAL,
                                         None) is not None:
@@ -466,6 +484,7 @@ def train(
   # ----------------------------------------------------------------------------
   # Setup Eval Utility Functions
   # ----------------------------------------------------------------------------
+  logging.info('Started Setup Eval Utility Functions section.')
   def _run_training_eval(first_run: bool = False):
     if first_run:
       logging.info('Compiling training eval loop.')
@@ -478,7 +497,9 @@ def train(
         task: ds.as_numpy_iterator()
         for task, ds in train_eval_datasets.items()
     }
+    logging.info('Computed eval_batch_iters.')
     eval_summaries = trainer.eval(eval_batch_iters)
+    logging.info('Computed eval_summaries.')
     trainer.stop_training = run_actions(trainer_lib.ActionMode.TRAIN_EVAL,
                                         actions, trainer.train_state,
                                         eval_summaries)
@@ -506,6 +527,7 @@ def train(
     if train_eval_datasets:
       logging.info('Running training eval before training.')
       _run_training_eval(first_run=True)
+      logging.info("Completed _run_training_eval.")
     if evaluator is not None:
       logging.info('Running inference eval before training.')
       _run_inference_eval()

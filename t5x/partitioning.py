@@ -187,7 +187,6 @@ def get_mesh(model_parallel_submesh: HardwareMesh,
   Returns:
     A xmap / pjit Mesh containing the virtual device mesh with data, model axes.
   """
-  print("In function get_mesh")
   input_devices = input_devices or jax.devices(backend)
   input_local_devices = input_local_devices or jax.local_devices(0, backend)
   # Sort input_devices based on coords, as backends might not return devices
@@ -316,17 +315,11 @@ def get_cpu_mesh() -> Mesh:
 
 def get_gpu_mesh(num_partitions: int) -> Mesh:
   """Mesh for GPUs that preferentially places 'model' on NVLink."""
-  print("In function get_gpu_mesh")
   nvlink_size = jax.local_device_count()
-  print("nvlink_size: ", nvlink_size)
   dcn_size = jax.process_count()
-  print("dcn_size: ", dcn_size)
   nvlink_mp = min(num_partitions, nvlink_size)
-  print("nvlink_mp: ", nvlink_mp)
   nvlink_dp, extra1 = divmod(nvlink_size, nvlink_mp)
-  print("nvlink_dp: ", nvlink_dp)
   dcn_mp, extra2 = divmod(num_partitions, nvlink_mp)
-  print("dcn_mp: ", dcn_mp)
   assert not (extra1 or extra2), ('number of partitions on GPU must be a factor'
                                   ' or multiple of the number of local devices')
   dcn_dp = dcn_size // dcn_mp
@@ -335,11 +328,8 @@ def get_gpu_mesh(num_partitions: int) -> Mesh:
       mesh_shape=[nvlink_dp, nvlink_mp],
       dcn_mesh_shape=[dcn_dp, dcn_mp],
       process_is_granule=True)
-  print("devices: ", devices)
 
   global_mesh = Mesh(devices, ['data', 'model'])
-  print("global_mesh", global_mesh)
-  print("local_mesh = global_mesh.local_mesh: ", global_mesh.local_mesh)
   logging.info('global_mesh axis_names: %s', global_mesh.axis_names)
   logging.info('global_mesh devices: %s', global_mesh.devices)
   return global_mesh
@@ -362,7 +352,6 @@ def default_mesh(num_partitions: int,
   Returns:
     xmap/pjit 2D Mesh with 'data', 'model' mesh axes.
   """
-  print("In the function default_mesh")
   last_device = jax.devices(backend)[-1]
   platform = last_device.platform
   device_kind = last_device.device_kind
@@ -434,7 +423,6 @@ class LocalChunker:
   """Utility class to aid chunking of sharded arrays in multihost settings."""
 
   def __init__(self, global_mesh: Mesh):
-    print("In LocalChunker class")
     self.global_mesh = global_mesh
     local_mesh = global_mesh.local_mesh
     first_local_device = local_mesh.devices.reshape(-1)[0]
@@ -447,13 +435,9 @@ class LocalChunker:
     self.chunk_ids = collections.OrderedDict()
     self.mesh_axes = list(global_mesh.shape.keys())
     for mesh_axis in self.mesh_axes:
-      print("\n\nMesh axis: ", mesh_axis)
       num_devices_per_chunk = local_mesh.shape[mesh_axis]
-      print("num_devices_per_chunk: ", num_devices_per_chunk)
-      print("global_mesh.shape[mesh_axis]: ", global_mesh.shape[mesh_axis])
       self.num_chunks[mesh_axis] = (
           global_mesh.shape[mesh_axis] // num_devices_per_chunk)
-      print("self.num_chunks[mesh_axis]: ", self.num_chunks[mesh_axis])
       self.chunk_ids[mesh_axis] = (
           host_location[mesh_axis] // num_devices_per_chunk)
 
@@ -679,28 +663,21 @@ class BasePartitioner(metaclass=abc.ABCMeta):
       Filled `DataLayout` structure.
     """
 
-    print("Entered get_data_layout")
-    print("self._data_axis", self._data_axis)
     if host_index is not None:
       raise NotImplementedError('Explicit host_index is not yet implemented.')
     if self._data_axis is None:
-      print("In line: if self._data_axis is None")
       return DataLayout(
           batch_size=batch_size,
           shard_id=0,
           num_shards=1,
           is_first_host_in_replica_set=(jax.process_index() == 0))
     mesh_size = self._local_chunker.global_mesh.shape[self._data_axis]
-    print("mesh size: ", mesh_size)
     batch_size = batch_size or mesh_size
-    print("batch_size: ", batch_size)
     if batch_size % mesh_size:
       raise ValueError(
           f'Batch size ({batch_size}) must be divisible by corresponding '
           f'mesh size ({mesh_size}).')
-    print("self._local_chunker.num_chunks: ", self._local_chunker.num_chunks)
     num_shards = self._local_chunker.num_chunks[self._data_axis]
-    print("num_shards: ", num_shards)
     if batch_size % num_shards:
       raise ValueError(
           f'Batch size ({batch_size}) must be divisible by number of '
@@ -741,7 +718,6 @@ class BasePartitioner(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def _local_chunker(self):
     """Returns the chunker that matches the parameters of this partitioner."""
-    print("In _local_chunker from parent parent class - BasePartitioner")
     raise NotImplementedError
 
   def get_logical_axes(self, train_state: TrainState) -> TrainState:
@@ -839,12 +815,10 @@ class BasePjitPartitioner(BasePartitioner):
 
   @cached_property
   def _local_chunker(self) -> LocalChunker:
-    print("In _local_chunker from parent class - BasePjitPartitioner")
     return LocalChunker(self.mesh)
 
   @cached_property
   def mesh(self) -> Mesh:
-    print("In the cached property mesh(self).")
     return default_mesh(self._num_partitions, self._model_parallel_submesh,
                         self._backend)
 
