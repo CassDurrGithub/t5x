@@ -20,7 +20,7 @@ natural text inputs and targets.
 """
 
 import abc
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 import enum
 import functools
 import inspect
@@ -28,7 +28,7 @@ import itertools
 import logging
 import os
 import re
-from typing import Any, Callable, Iterator, Optional, Tuple, Union
+from typing import Any, Callable, Iterator, Optional, Tuple, Union, Mapping
 
 import clu.data.dataset_iterator
 import jax
