@@ -20,6 +20,7 @@ natural text inputs and targets.
 """
 
 import abc
+# Remove mapping from collections abs and move to typing
 from collections.abc import Sequence
 import enum
 import functools
@@ -46,6 +47,7 @@ from t5x.infer import _Inferences
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
+# Issue lies here
 BatchesType = Union[Sequence[Mapping[str, str]],
                     Sequence[Sequence[Mapping[str, str]]]]
 
